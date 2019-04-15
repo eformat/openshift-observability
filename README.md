@@ -168,7 +168,13 @@ spec:
   storageClassName: netapp-nfs
 EOF
 
+# create grafana
 oc new-app -f grafana.yaml -p NAMESPACE=$(oc project -q)
 
+# ouath delegation
+oc adm policy add-cluster-role-to-user system:auth-delegator -z grafana -n observability
+
+# set datasource and data volumes
+oc set volume deployment/grafana --add --overwrite -t secret --secret-name=grafana-datasources --name=grafana-datasources --mount-path=/etc/grafana/provisioning/datasources --overwrite
 oc set volume deployment/grafana --add --overwrite -t persistentVolumeClaim --claim-name=grafana-data --name=grafana-data --mount-path=/var/lib/grafana --overwrite
 ```
