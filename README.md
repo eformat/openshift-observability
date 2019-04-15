@@ -129,11 +129,9 @@ Application
 # becuase we are not using fabric8 fragments to build and deploy (mvn fabric8:deploy), we can do these steps manually
 oc edit svc camel-springboot-rest-ose-master
 
-# expose spring boot port
-  - name: http
-    port: 8080
-    protocol: TCP
-    targetPort: 8080
+# recreate service as S2I does not get this corect
+oc delete svc camel-springboot-rest-ose-master
+oc expose dc camel-springboot-rest-ose-master --name=camel-springboot-rest-ose-master --port=8080 --generator=service/v1
 
 # expose route and set it on our swagger endpoint
 oc expose svc camel-springboot-rest-ose-master --port=8080
@@ -167,6 +165,7 @@ spec:
   resources:
     requests:
       storage: 1Gi
+  storageClassName: netapp-nfs
 EOF
 
 oc new-app -f grafana.yaml -p NAMESPACE=$(oc project -q)
