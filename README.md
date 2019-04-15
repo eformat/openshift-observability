@@ -20,7 +20,7 @@ wget https://raw.githubusercontent.com/openshift/origin/master/examples/promethe
   value: openshift3/prometheus-alert-buffer:v3.11.82
 ```
 
-Get a default prometheus configuration
+The default prometheus configuration is here
 
 ```
 wget https://raw.githubusercontent.com/prometheus/prometheus/master/documentation/examples/prometheus.yml -O prometheus-default.yml
@@ -32,7 +32,7 @@ Get a default alertmanager configuration
 wget https://raw.githubusercontent.com/prometheus/alertmanager/master/doc/examples/simple.yml -O alertmanager.yml
 ```
 
-We will use a prometheus config file that allows us to scrape based on annotations
+We will use a custom prometheus config file that allows us to scrape applications based on annotations
 
 ```
 # e.g. annotate application service
@@ -47,7 +47,7 @@ Create prometheus
 ```
 # Create project for our observability stack
 oc new-project observability --display-name="Observability" --description="Observability"
-oc create secret generic prom --from-file=./prometheus.yaml
+oc create secret generic prom --from-file=./prometheus.yml
 oc create secret generic prom-alerts --from-file=./alertmanager.yml
 
 # Create the prometheus instance
