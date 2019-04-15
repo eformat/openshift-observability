@@ -112,6 +112,6 @@ oc edit svc camel-springboot-rest-ose-master
 
 -- expose route and set it on our swagger endpoint
 oc expose svc camel-springboot-rest-ose-master --port=8080
-oc set env dc/camel-springboot-rest-master SWAGGERUI_HOST=$(oc get route camel-springboot-rest-master --template='{{ .spec.host }}')
+oc set env dc/camel-springboot-rest-ose-master SWAGGERUI_HOST=$(oc get route camel-springboot-rest-ose-master --template='{{ .spec.host }}')
 
 ```
