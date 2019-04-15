@@ -144,14 +144,32 @@ oc annotate svc camel-springboot-rest-ose-master --overwrite prometheus.io/path=
 
 Grafana deploy
 
-The example temaplate is here, we adjust for images in our cluster
+The example template is here, we adjust for images and oauth config in our cluster
 
 ```
 wget https://raw.githubusercontent.com/openshift/origin/master/examples/grafana/grafana.yaml -O grafana.yaml
 ```
 
+Deploy Grafana with persistent storage for data
 
 ```
-oc process --parameters -f grafana.yaml
+oc new-project grafana-test
+
+oc create -f - <<EOF
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: grafana-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+EOF
+
 oc new-app -f grafana.yaml -p NAMESPACE=$(oc project -q)
+
+oc set volume deployment/grafana --add --overwrite -t persistentVolumeClaim --claim-name=grafana-data --name=grafana-data --mount-path=/var/lib/grafana --overwrite
 ```
+
