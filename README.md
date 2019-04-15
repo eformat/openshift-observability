@@ -95,3 +95,11 @@ EOF
 
 oc volume statefulsets/prom --add --overwrite -t persistentVolumeClaim --claim-name=alertmanager-data --name=alertmanager-data --mount-path=/alertmanager
 ```
+
+Application
+
+```
+# https://github.com/eformat/camel-springboot-rest-ose
+
+oc env dc/camel-springboot-rest SWAGGERUI_HOST=$(oc get route camel-springboot-rest --template='{{ .spec.host }}')
+```
