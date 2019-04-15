@@ -101,5 +101,17 @@ Application
 ```
 # https://github.com/eformat/camel-springboot-rest-ose
 
-oc env dc/camel-springboot-rest SWAGGERUI_HOST=$(oc get route camel-springboot-rest --template='{{ .spec.host }}')
+-- becuase we are not using fabric8 fragments, do this manually
+oc edit svc camel-springboot-rest-ose-master
+
+# add port
+  - name: 8080-tcp
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+
+-- expose route and set it on our swagger endpoint
+oc expose svc camel-springboot-rest-ose-master --port=8080
+oc set env dc/camel-springboot-rest-master SWAGGERUI_HOST=$(oc get route camel-springboot-rest-master --template='{{ .spec.host }}')
+
 ```
