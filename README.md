@@ -39,21 +39,21 @@ Create prometheus
 # Create project for our observability stack
 oc new-project observability --display-name="Observability" --description="Observability"
 
-# create configmaps
+# create secrets containing configuration
 oc create secret generic prom --from-file=./prometheus.yml
 oc create secret generic prom-alerts --from-file=./alertmanager.yml
 
 # Create the prometheus instance
+# this requires cluster admin so we can create a cluster role that can scrape our app configs
 oc process -f prometheus-standalone.yaml -p NAMESPACE=observability | oc apply -f -
 oc policy add-role-to-user view system:serviceaccount:$(oc project -q):prom
 
 # If using multitenant plugin:
-oc get clusternetwork default --template='{{.pluginName}}'
+$ oc get clusternetwork default --template='{{.pluginName}}'
 redhat/openshift-ovs-multitenant
 
-# then we need to make prometheus global
+# Then we need to make prometheus global so it can be seen by all projects
 oc adm pod-network make-projects-global observability
-
 ```
 
 Prometheus persistent data

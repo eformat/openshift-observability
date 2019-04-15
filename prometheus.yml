@@ -44,7 +44,7 @@ scrape_configs:
     # drop infrastructure components managed by other scrape targets
     - source_labels: [__meta_kubernetes_service_name]
       action: drop
-      regex: 'prometheus-node-exporter|webconsole|controller-manager'
+      regex: 'prometheus-node-exporter|webconsole|controller-manager|logging-es-prometheus'
     # only those that have requested scraping
     - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
       action: keep
@@ -70,13 +70,3 @@ scrape_configs:
     - source_labels: [__meta_kubernetes_service_name]
       action: replace
       target_label: kubernetes_name
-
-    # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
-#  - job_name: 'prometheus'
-
-    # metrics_path defaults to '/metrics'
-    # scheme defaults to 'http'.
-
-#    static_configs:
-#    - targets: ['camel-springboot-rest-ose-prometheus.helloservice:9779']
-
