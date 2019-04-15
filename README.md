@@ -100,7 +100,8 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi
+      storage: 5Gi
+  storageClassName: netapp-nfs
 EOF
 
 oc volume statefulsets/prom --add --overwrite -t persistentVolumeClaim --claim-name=prometheus-data --name=prometheus-data --mount-path=/prometheus
@@ -116,6 +117,7 @@ spec:
   resources:
     requests:
       storage: 1Gi
+  storageClassName: netapp-nfs
 EOF
 
 oc volume statefulsets/prom --add --overwrite -t persistentVolumeClaim --claim-name=alertmanager-data --name=alertmanager-data --mount-path=/alertmanager
