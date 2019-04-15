@@ -70,6 +70,7 @@ oc new-project observability --display-name="Observability" --description="Obser
 # create secrets containing configuration
 oc create secret generic prom --from-file=./prometheus.yml
 oc create secret generic prom-alerts --from-file=./alertmanager.yml
+oc create -f ./prometheus-htpasswd-secret.yml
 
 # Create the prometheus instance
 # this requires cluster admin so we can create a cluster role that can scrape our app configs
@@ -150,10 +151,10 @@ The example template is here, we adjust for images and oauth config in our clust
 wget https://raw.githubusercontent.com/openshift/origin/master/examples/grafana/grafana.yaml -O grafana.yaml
 ```
 
-Deploy Grafana with persistent storage for data
+Deploy Grafana with persistent storage for data and graphs
 
 ```
-oc new-project grafana-test
+oc create secret generic grafana-datasources --from-file="prometheus.yaml=./grafana-prometheus-secret.json"
 
 oc create -f - <<EOF
 kind: PersistentVolumeClaim
@@ -172,4 +173,3 @@ oc new-app -f grafana.yaml -p NAMESPACE=$(oc project -q)
 
 oc set volume deployment/grafana --add --overwrite -t persistentVolumeClaim --claim-name=grafana-data --name=grafana-data --mount-path=/var/lib/grafana --overwrite
 ```
-

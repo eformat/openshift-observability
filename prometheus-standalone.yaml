@@ -147,6 +147,7 @@ objects:
           - -http-address=
           - -email-domain=*
           - -upstream=http://localhost:9090
+          - '-htpasswd-file=/etc/proxy/htpasswd/auth'          
           - -client-id=system:serviceaccount:$(NAMESPACE):prom
           - -openshift-ca=/etc/pki/tls/cert.pem
           - -openshift-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
@@ -163,6 +164,8 @@ objects:
             name: prometheus-secrets
           - mountPath: /prometheus
             name: prometheus-data
+          - mountPath: /etc/proxy/htpasswd
+            name: secret-prometheus-htpasswd            
 
         - name: prometheus
           args:
@@ -176,6 +179,9 @@ objects:
             name: prometheus-config
           - mountPath: /prometheus
             name: prometheus-data
+          - mountPath: /etc/prometheus/secrets/prometheus-htpasswd
+            name: secret-prometheus-htpasswd
+            readOnly: true            
 
         # Deploy alertmanager behind an oauth proxy
         # use http port=4190 and https port=9943 to differ from prom-proxy
@@ -248,6 +254,10 @@ objects:
             secretName: prom-alerts-tls
         - name: alertmanager-data
           emptyDir: {}
+        - name: secret-prometheus-htpasswd
+          secret:
+            defaultMode: 420
+            secretName: prometheus-htpasswd          
 
 # Create a fully end-to-end TLS connection to the alert proxy
 - apiVersion: route.openshift.io/v1
