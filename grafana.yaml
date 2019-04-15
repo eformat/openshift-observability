@@ -15,7 +15,7 @@ parameters:
   value: openshift3/grafana:v3.11.82
 - description: The location of the proxy image
   name: IMAGE_PROXY
-  value: openshift/oauth-proxy:v3.11.82
+  value: openshift3/oauth-proxy:v3.11.82
 - description: External URL for the grafana route
   name: ROUTE_URL
   value: ""
