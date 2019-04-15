@@ -3,7 +3,7 @@
 Deploy standalone prometheus
 
 ```
-wget https://raw.githubusercontent.com/openshift/origin/master/examples/prometheus/prometheus-standalone.yaml
+wget https://raw.githubusercontent.com/openshift/origin/master/examples/prometheus/prometheus.yaml -O prometheus-ops.yaml
 
 # adjust images to use as required
 - description: The location of the proxy image
@@ -18,12 +18,6 @@ wget https://raw.githubusercontent.com/openshift/origin/master/examples/promethe
 - description: The location of alert-buffer image
   name: IMAGE_ALERT_BUFFER
   value: openshift3/prometheus-alert-buffer:v3.11.82
-```
-
-The default prometheus configuration is here
-
-```
-wget https://raw.githubusercontent.com/prometheus/prometheus/master/documentation/examples/prometheus.yml -O prometheus-default.yml
 ```
 
 Get a default alertmanager configuration
@@ -44,11 +38,12 @@ Create prometheus
 ```
 # Create project for our observability stack
 oc new-project observability --display-name="Observability" --description="Observability"
-oc create secret generic prom --from-file=./prometheus.yml
-oc create secret generic prom-alerts --from-file=./alertmanager.yml
+
+# oc create secret generic prom --from-file=./prometheus.yml
+#oc create secret generic prom-alerts --from-file=./alertmanager.yml
 
 # Create the prometheus instance
-oc process -f prometheus-standalone.yaml | oc apply -f -
+oc process -f prometheus-ops.yaml | oc apply -f -
 oc policy add-role-to-user view system:serviceaccount:$(oc project -q):prom
 
 # If using multitenant plugin:
@@ -65,7 +60,7 @@ Prometheus persistent data
 ```
 -- prometheus persistent data
 
-oc create -n rabbitmq -f - <<EOF
+oc create -f - <<EOF
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
@@ -80,7 +75,7 @@ EOF
 
 oc volume statefulsets/prom --add --overwrite -t persistentVolumeClaim --claim-name=prometheus-data --name=prometheus-data --mount-path=/prometheus
 
-oc create -n rabbitmq -f - <<EOF
+oc create -f - <<EOF
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
