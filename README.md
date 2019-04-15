@@ -8,16 +8,16 @@ wget https://raw.githubusercontent.com/openshift/origin/master/examples/promethe
 # adjust images to use as required
 - description: The location of the proxy image
   name: IMAGE_PROXY
-  value: openshift3/oauth-proxy:v3.11.98-3
+  value: openshift3/oauth-proxy:v3.11.82
 - description: The location of the prometheus image
   name: IMAGE_PROMETHEUS
-  value: openshift3/prometheus:v3.11.98-3
+  value: openshift3/prometheus:v3.11.82
 - description: The location of the alertmanager image
   name: IMAGE_ALERTMANAGER
-  value: openshift3/prometheus-alertmanager:v3.11.98-3
+  value: openshift3/prometheus-alertmanager:v3.11.82
 - description: The location of alert-buffer image
   name: IMAGE_ALERT_BUFFER
-  value: openshift3/prometheus-alert-buffer:v3.11.98-3
+  value: openshift3/prometheus-alert-buffer:v3.11.82
 ```
 
 Get a default prometheus configuration
