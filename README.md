@@ -5,19 +5,19 @@ Deploy standalone prometheus
 ```
 wget https://raw.githubusercontent.com/openshift/origin/master/examples/prometheus/prometheus-standalone.yaml
 
-# adjust images to use as required (these must be imported into your openshift cluster for offline install)
+# adjust images to use as required
 - description: The location of the proxy image
   name: IMAGE_PROXY
-  value: openshift/oauth-proxy:v1.0.0
+  value: openshift3/oauth-proxy:v3.11.98-3
 - description: The location of the prometheus image
   name: IMAGE_PROMETHEUS
-  value: openshift/prometheus:v2.3.2
+  value: openshift3/prometheus:v3.11.98-3
 - description: The location of the alertmanager image
   name: IMAGE_ALERTMANAGER
-  value: openshift/prometheus-alertmanager:v0.15.1
+  value: openshift3/prometheus-alertmanager:v3.11.98-3
 - description: The location of alert-buffer image
   name: IMAGE_ALERT_BUFFER
-  value: openshift/prometheus-alert-buffer:v0.0.2
+  value: openshift3/prometheus-alert-buffer:v3.11.98-3
 ```
 
 Get a default prometheus configuration
