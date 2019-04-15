@@ -9,6 +9,9 @@ metadata:
     iconClass: fa fa-cogs
     tags: "monitoring,prometheus,alertmanager,time-series"
 parameters:
+- description: The namespace to instantiate prometheus under. Defaults to 'kube-system'.
+  name: NAMESPACE
+  value: observability
 - description: The location of the proxy image
   name: IMAGE_PROXY
   value: openshift3/oauth-proxy:v3.11.82
@@ -40,6 +43,12 @@ objects:
   metadata:
     name: prometheus-scraper
   rules:
+  - apiGroups: [""]
+    resources:
+    - services
+    - endpoints
+    - pods
+    verbs: ["get", "list", "watch"]
   - apiGroups:
     - route.openshift.io
     resources:
