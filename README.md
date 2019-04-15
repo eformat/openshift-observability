@@ -43,7 +43,7 @@ oc new-project observability --display-name="Observability" --description="Obser
 #oc create secret generic prom-alerts --from-file=./alertmanager.yml
 
 # Create the prometheus instance
-oc process -f prometheus-ops.yaml | oc apply -f -
+oc process -f prometheus-ops.yaml -p NAMESPACE=observability | oc apply -f -
 oc policy add-role-to-user view system:serviceaccount:$(oc project -q):prom
 
 # If using multitenant plugin:
