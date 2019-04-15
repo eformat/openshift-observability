@@ -46,12 +46,48 @@ Create prometheus
 
 ```
 # Create project for our observability stack
-oc project observability --display-name="Observability" --description="Observability"
-oc create secret generic prom --from-file=./prometheus.yml
+oc new-project observability --display-name="Observability" --description="Observability"
+oc create secret generic prom --from-file=./prometheus.yaml
 oc create secret generic prom-alerts --from-file=./alertmanager.yml
 
 # Create the prometheus instance
 oc process -f prometheus-standalone.yaml | oc apply -f -
 oc policy add-role-to-user view system:serviceaccount:$(oc project -q):prom
 
+```
+
+Prometheus persistent data
+
+```
+-- prometheus persistent data
+
+oc create -n rabbitmq -f - <<EOF
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: prometheus-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+EOF
+
+oc volume statefulsets/prom --add --overwrite -t persistentVolumeClaim --claim-name=prometheus-data --name=prometheus-data --mount-path=/prometheus
+
+oc create -n rabbitmq -f - <<EOF
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: alertmanager-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+EOF
+
+oc volume statefulsets/prom --add --overwrite -t persistentVolumeClaim --claim-name=alertmanager-data --name=alertmanager-data --mount-path=/alertmanager
 ```
