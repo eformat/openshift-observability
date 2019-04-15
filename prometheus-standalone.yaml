@@ -35,6 +35,18 @@ objects:
       serviceaccounts.openshift.io/oauth-redirectreference.prom: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"prom"}}'
       serviceaccounts.openshift.io/oauth-redirectreference.alerts: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"prom-alerts"}}'
 
+# allow prometheus to scrape data
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: prometheus-cluster-reader
+  roleRef:
+    name: cluster-reader
+  subjects:
+  - kind: ServiceAccount
+    name: prom
+    namespace: "${NAMESPACE}"
+
 # Create a fully end-to-end TLS connection to the prometheus proxy
 - apiVersion: route.openshift.io/v1
   kind: Route

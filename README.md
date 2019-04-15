@@ -35,11 +35,8 @@ wget https://raw.githubusercontent.com/prometheus/alertmanager/master/doc/exampl
 We will use a custom prometheus config file that allows us to scrape applications based on annotations
 
 ```
-# e.g. annotate application service
-
-prometheus.io/path: /prometheus
-prometheus.io/port: '8081'
-prometheus.io/scrape: 'true'
+# example annotate a service so it can be scraped
+oc annotate svc my-service --overwrite prometheus.io/path='/prometheus' prometheus.io/port='8081' prometheus.io/scrape='true'
 ```
 
 Create prometheus
@@ -53,6 +50,13 @@ oc create secret generic prom-alerts --from-file=./alertmanager.yml
 # Create the prometheus instance
 oc process -f prometheus-standalone.yaml | oc apply -f -
 oc policy add-role-to-user view system:serviceaccount:$(oc project -q):prom
+
+# If using multitenant plugin:
+oc get clusternetwork default --template='{{.pluginName}}'
+redhat/openshift-ovs-multitenant
+
+# then we need to make prometheus global
+oc adm pod-network make-projects-global observability
 
 ```
 
