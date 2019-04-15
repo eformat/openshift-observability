@@ -1,11 +1,50 @@
 # openshift observability stack
 
-Deploy standalone prometheus
+Deploy standalone prometheus using openshift example templates
 
 ```
-wget https://raw.githubusercontent.com/openshift/origin/master/examples/prometheus/prometheus.yaml -O prometheus-ops.yaml
+wget https://raw.githubusercontent.com/openshift/origin/master/examples/prometheus/prometheus-standalone.yaml
+```
 
-# adjust images to use as required
+We adjust the template to allow the `prom` service account to scraping our application endpoints and use default images in our cluster
+
+```
+# add ClusterRole and ClusterRoleBinding
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: prometheus-scraper
+  rules:
+  - apiGroups: [""]
+    resources:
+    - services
+    - endpoints
+    - pods
+    verbs: ["get", "list", "watch"]
+  - apiGroups:
+    - route.openshift.io
+    resources:
+    - routers/metrics
+    verbs:
+    - get
+  - apiGroups:
+    - image.openshift.io
+    resources:
+    - registry/metrics
+    verbs:
+    - get
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: prometheus-scraper
+  roleRef:
+    name: prometheus-scraper
+  subjects:
+  - kind: ServiceAccount
+    name: prom
+    namespace: "${NAMESPACE}"
+
+# adjust images to use
 - description: The location of the proxy image
   name: IMAGE_PROXY
   value: openshift3/oauth-proxy:v3.11.82
@@ -20,18 +59,7 @@ wget https://raw.githubusercontent.com/openshift/origin/master/examples/promethe
   value: openshift3/prometheus-alert-buffer:v3.11.82
 ```
 
-Get a default alertmanager configuration
-
-```
-wget https://raw.githubusercontent.com/prometheus/alertmanager/master/doc/examples/simple.yml -O alertmanager.yml
-```
-
-We will use a custom prometheus config file that allows us to scrape applications based on annotations
-
-```
-# example annotate a service so it can be scraped
-oc annotate svc my-service --overwrite prometheus.io/path='/prometheus' prometheus.io/port='8081' prometheus.io/scrape='true'
-```
+We will use a custom prometheus config file that allows us to scrape applications based on `Service` annotations.
 
 Create prometheus
 
@@ -97,17 +125,33 @@ Application
 ```
 # https://github.com/eformat/camel-springboot-rest-ose
 
--- becuase we are not using fabric8 fragments, do this manually
+# becuase we are not using fabric8 fragments to build and deploy (mvn fabric8:deploy), we can do these steps manually
 oc edit svc camel-springboot-rest-ose-master
 
-# add port
-  - name: 8080-tcp
+# expose spring boot port
+  - name: http
     port: 8080
     protocol: TCP
     targetPort: 8080
 
--- expose route and set it on our swagger endpoint
+# expose route and set it on our swagger endpoint
 oc expose svc camel-springboot-rest-ose-master --port=8080
 oc set env dc/camel-springboot-rest-ose-master SWAGGERUI_HOST=$(oc get route camel-springboot-rest-ose-master --template='{{ .spec.host }}')
 
+# Annotate our SpringBoot service so it can be scraped
+oc annotate svc camel-springboot-rest-ose-master --overwrite prometheus.io/path='/prometheus' prometheus.io/port='9779' prometheus.io/scrape='true'
+```
+
+Grafana deploy
+
+The example temaplate is here, we adjust for images in our cluster
+
+```
+wget https://raw.githubusercontent.com/openshift/origin/master/examples/grafana/grafana.yaml -O grafana.yaml
+```
+
+
+```
+oc process --parameters -f grafana.yaml
+oc new-app -f grafana.yaml -p NAMESPACE=$(oc project -q)
 ```
