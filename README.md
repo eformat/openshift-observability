@@ -135,7 +135,7 @@ oc adm pod-network make-projects-global observability
 Prometheus and alert manager persistent data using nfs (size appropriately)
 
 ```
--- prometheus persistent data
+# prometheus persistent data
 
 oc create -f - <<EOF
 kind: PersistentVolumeClaim
@@ -151,7 +151,7 @@ spec:
   storageClassName: netapp-nfs
 EOF
 
-oc volume statefulsets/prom --add --overwrite -t persistentVolumeClaim --claim-name=prometheus-data --name=prometheus-data --mount-path=/prometheus
+oc set volume statefulsets/prom --add --overwrite -t persistentVolumeClaim --claim-name=prometheus-data --name=prometheus-data --mount-path=/prometheus
 
 oc create -f - <<EOF
 kind: PersistentVolumeClaim
@@ -167,7 +167,7 @@ spec:
   storageClassName: netapp-nfs
 EOF
 
-oc volume statefulsets/prom --add --overwrite -t persistentVolumeClaim --claim-name=alertmanager-data --name=alertmanager-data --mount-path=/alertmanager
+oc set volume statefulsets/prom --add --overwrite -t persistentVolumeClaim --claim-name=alertmanager-data --name=alertmanager-data --mount-path=/alertmanager
 ```
 
 ## Application
@@ -177,6 +177,9 @@ Deploy an example SpringBoot Application using FIS S2I image. The underlying fus
 The source code application is based here: https://github.com/eformat/camel-springboot-rest-ose
 
 ```
+# Create an application project
+oc new-project my-app
+
 # If using mvn fabric8 plugin, deploy the app using
 mvn fabric8:deploy
 
@@ -184,14 +187,14 @@ mvn fabric8:deploy
 oc new-app fuse-java-openshift:1.2~https://github.com/eformat/camel-springboot-rest-ose.git
 
 oc delete svc camel-springboot-rest-ose
-oc expose dc camel-springboot-rest-ose --name=camel-springboot-rest-ose --port=8080 --generator=service/v1
+oc expose dc camel-springboot-rest-ose --name=camel-springboot-rest-ose --port=8080,8778,9779 --generator=service/v1
 
 # expose route and set it on our swagger endpoint
 oc expose svc camel-springboot-rest-ose --port=8080
 oc set env dc/camel-springboot-rest-ose SWAGGERUI_HOST=$(oc get route camel-springboot-rest-ose --template='{{ .spec.host }}')
 
 # Annotate our SpringBoot service so it can be scraped
-oc annotate svc camel-springboot-rest-ose-master --overwrite prometheus.io/path='/prometheus' prometheus.io/port='9779' prometheus.io/scrape='true'
+oc annotate svc camel-springboot-rest-ose --overwrite prometheus.io/path='/prometheus' prometheus.io/port='9779' prometheus.io/scrape='true'
 ```
 
 If the `jolokia/hawt.io` console is not available for the fuse application, check the deployment config has these ports enabled:
