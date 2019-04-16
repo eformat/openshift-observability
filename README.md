@@ -263,7 +263,6 @@ Login to grafana and Import the `helloservice-grafana-dashboard.json` dashboard.
 
 ![image](images/grafana-dashboard.png)
 
-
 ## Tracing Stack
 
 [Opentracing](https://opentracing.io/) contains vendor-neutral APIs and instrumentation for distributed tracing.
