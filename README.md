@@ -250,3 +250,7 @@ oc adm policy add-cluster-role-to-user system:auth-delegator -z grafana -n obser
 oc set volume deployment/grafana --add --overwrite -t secret --secret-name=grafana-datasources --name=grafana-datasources --mount-path=/etc/grafana/provisioning/datasources --overwrite
 oc set volume deployment/grafana --add --overwrite -t persistentVolumeClaim --claim-name=grafana-data --name=grafana-data --mount-path=/var/lib/grafana --overwrite
 ```
+
+### Example
+
+![image](images/grafana-dashboard.png)
