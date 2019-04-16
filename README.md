@@ -262,3 +262,30 @@ oc set volume deployment/grafana --add --overwrite -t persistentVolumeClaim --cl
 Login to grafana and Import the `helloservice-grafana-dashboard.json` dashboard. Try scaling the Application pod to 2 manually, you should see metrics being collected in prometheus and grafana. If you browse to the root URL of the Application, you can try out the `hello` swagger API endpoints to generate metrics traffic.
 
 ![image](images/grafana-dashboard.png)
+
+
+## Tracing Stack
+
+[Opentracing](https://opentracing.io/) contains vendor-neutral APIs and instrumentation for distributed tracing.
+
+Production deployment is documented [here](https://github.com/jaegertracing/jaeger-openshift#production-setup) where Cassandra or Elasticsearch can be used as backing storage for the Jaeger Collector and Query.
+
+The `Jaeger` all-in-one deployment suitable for development and testing can be downloaded here
+
+```
+wget https://raw.githubusercontent.com/jaegertracing/jaeger-openshift/master/all-in-one/jaeger-all-in-one-template.yml
+```
+
+We can deploy Jaeger Opentracing into OpenShift using
+
+```
+oc project observability
+oc process -f ./jaeger-all-in-one-template.yml | oc create -f -
+```
+
+Set the Application's Jaeger endpoint in the deploymentconfig
+
+```
+oc project my-app
+oc set env dc/camel-springboot-rest-ose JAEGER_ENDPOINT=http://jaeger-collector.observability.svc.cluster.local:14268/api/traces
+```
