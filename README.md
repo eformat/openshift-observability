@@ -1,15 +1,59 @@
-# openshift observability stack
+# OpenShift Observability Stack
 
-Deploy standalone prometheus using openshift example templates
+There are 3 general areas for Observability of applications. Currently this is performed by
+
+- Monitoring
+- Log analysis
+- Tracing
+
+We will examine some opensource tools to perform these functions as part of a Proof of Concept atop OpenShift.
+
+## Monitoring Stack
+
+Prometheus only stores a (configurable) amount of metrics data.
+
+A full scalable production stack requires a set of components that can be composed into a highly available  metric system with unlimited storage capacity.
+
+[Thanos](https://github.com/improbable-eng/thanos) is an opensource project that can be added seamlessly on top of existing Prometheus deployments to provide this scaling layer.
+
+Object storage is provided by [rook.io](https://rook.io/) which is based on ceph and provides an S3 endpoint to Thanos.
+
+```
+   x--------------------x
+---| Grafana Dashboard  |
+|  x--------------------X
+|
+|  x--------------------x   x--------------------x
+|  | Prometheus Metrics |---|    Applications    |
+|  x--------------------X   x--------------------x
+|            |
+|  x--------------------x
+|->|   Thanos Scaling   |
+   x--------------------X
+             |
+   x--------------------x
+   |   rook.io Storage  |
+   x--------------------X
+```
+
+The initial proof of concept will be deployed using NFS. Object Storage and software defined storage will be required for long term storage and requires storage design and requirements gathering.
+
+## Prometheus
+
+Deploy a standalone prometheus using OpenShift example templates.
+
+In future 4.X versions of OpenShift the prometheus operator will become supported for standalone monitoring of applications (i.e. can deploy a multi-tenant prometheus operator for application stack). A blog discussing how this will look is here - https://coreos.com/blog/the-prometheus-operator.html
+
+We start with the default prometheus OpenShift example template
 
 ```
 wget https://raw.githubusercontent.com/openshift/origin/master/examples/prometheus/prometheus-standalone.yaml
 ```
 
-We adjust the template to allow the `prom` service account to scraping our application endpoints and use default images in our cluster
+We have adjusted the template to allow the `prom` service account to scrape our application endpoints and use the provided images available in our cluster.
 
 ```
-# add ClusterRole and ClusterRoleBinding
+# Add ClusterRole and ClusterRoleBinding
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
@@ -44,7 +88,7 @@ We adjust the template to allow the `prom` service account to scraping our appli
     name: prom
     namespace: "${NAMESPACE}"
 
-# adjust images to use
+# Adjust the default images versions to use based on the current OpenShift cluster version
 - description: The location of the proxy image
   name: IMAGE_PROXY
   value: openshift3/oauth-proxy:v3.11.82
@@ -59,33 +103,36 @@ We adjust the template to allow the `prom` service account to scraping our appli
   value: openshift3/prometheus-alert-buffer:v3.11.82
 ```
 
-We will use a custom prometheus config file that allows us to scrape applications based on `Service` annotations.
+We will use a prometheus configuration file that allows us to scrape applications based on `Service` annotations. This allows a developer to annotate their service so that the exposed metrics are available to be scraped.
 
-Create prometheus
+Login as an OpenShift that has cluster admin privilege (this is required to create ClusterRole and ClusterBindings)
+
+Create a prometheus deployment.
 
 ```
-# Create project for our observability stack
+# Create project to host our observability stack
 oc new-project observability --display-name="Observability" --description="Observability"
 
-# create secrets containing configuration
+# Create secrets containing configuration
 oc create secret generic prom --from-file=./prometheus.yml
 oc create secret generic prom-alerts --from-file=./alertmanager.yml
 oc create -f ./prometheus-htpasswd-secret.yml
 
 # Create the prometheus instance
-# this requires cluster admin so we can create a cluster role that can scrape our app configs
 oc process -f prometheus-standalone.yaml -p NAMESPACE=observability | oc apply -f -
+
+# Allow view access to namespace for prom service account
 oc policy add-role-to-user view system:serviceaccount:$(oc project -q):prom
 
-# If using multitenant plugin:
-$ oc get clusternetwork default --template='{{.pluginName}}'
+# (Optional) if using OpenShift multitenant sdn plugin - check using:
+oc get clusternetwork default --template='{{.pluginName}}'
 redhat/openshift-ovs-multitenant
 
 # Then we need to make prometheus global so it can be seen by all projects
 oc adm pod-network make-projects-global observability
 ```
 
-Prometheus persistent data
+Prometheus and alert manager persistent data using nfs (size appropriately)
 
 ```
 -- prometheus persistent data
@@ -123,39 +170,62 @@ EOF
 oc volume statefulsets/prom --add --overwrite -t persistentVolumeClaim --claim-name=alertmanager-data --name=alertmanager-data --mount-path=/alertmanager
 ```
 
-Application
+## Application
+
+Deploy an example SpringBoot Application using FIS S2I image. The underlying fuse image already has configuration to make prometheus metrics available on port 9779.
+
+The source code application is based here: https://github.com/eformat/camel-springboot-rest-ose
 
 ```
-# https://github.com/eformat/camel-springboot-rest-ose
+# If using mvn fabric8 plugin, deploy the app using
+mvn fabric8:deploy
 
-# becuase we are not using fabric8 fragments to build and deploy (mvn fabric8:deploy), we can do these steps manually
-oc edit svc camel-springboot-rest-ose-master
+# If NOT not using fabric8 fragments to build and deploy, we can do these steps manually
+oc new-app fuse-java-openshift:1.2~https://github.com/eformat/camel-springboot-rest-ose.git
 
-# recreate service as S2I does not get this corect
-oc delete svc camel-springboot-rest-ose-master
-oc expose dc camel-springboot-rest-ose-master --name=camel-springboot-rest-ose-master --port=8080 --generator=service/v1
+oc delete svc camel-springboot-rest-ose
+oc expose dc camel-springboot-rest-ose --name=camel-springboot-rest-ose --port=8080 --generator=service/v1
 
 # expose route and set it on our swagger endpoint
-oc expose svc camel-springboot-rest-ose-master --port=8080
-oc set env dc/camel-springboot-rest-ose-master SWAGGERUI_HOST=$(oc get route camel-springboot-rest-ose-master --template='{{ .spec.host }}')
+oc expose svc camel-springboot-rest-ose --port=8080
+oc set env dc/camel-springboot-rest-ose SWAGGERUI_HOST=$(oc get route camel-springboot-rest-ose --template='{{ .spec.host }}')
 
 # Annotate our SpringBoot service so it can be scraped
 oc annotate svc camel-springboot-rest-ose-master --overwrite prometheus.io/path='/prometheus' prometheus.io/port='9779' prometheus.io/scrape='true'
 ```
 
-Grafana deploy
+If the `jolokia/hawt.io` console is not available for the fuse application, check the deployment config has these ports enabled:
 
-The example template is here, we adjust for images and oauth config in our cluster
+```
+          ports:
+            - containerPort: 8778
+              name: jolokia
+              protocol: TCP
+            - containerPort: 9779
+              name: prometheus
+              protocol: TCP
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+```
+
+### Grafana
+
+The example template is here.
 
 ```
 wget https://raw.githubusercontent.com/openshift/origin/master/examples/grafana/grafana.yaml -O grafana.yaml
 ```
 
+We adjust the template to use the images available in OpenShift.
+
 Deploy Grafana with persistent storage for data and graphs
 
 ```
+# Create prometheus datasource
 oc create secret generic grafana-datasources --from-file="prometheus.yaml=./grafana-prometheus-secret.json"
 
+# Create a PVC for storing grafana dashboards and configuration
 oc create -f - <<EOF
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -170,13 +240,13 @@ spec:
   storageClassName: netapp-nfs
 EOF
 
-# create grafana
+# Create standalone grafana
 oc new-app -f grafana.yaml -p NAMESPACE=$(oc project -q)
 
-# ouath delegation
+# Allow Ouath delegation
 oc adm policy add-cluster-role-to-user system:auth-delegator -z grafana -n observability
 
-# set datasource and data volumes
+# Add datasource and data volumes to pod
 oc set volume deployment/grafana --add --overwrite -t secret --secret-name=grafana-datasources --name=grafana-datasources --mount-path=/etc/grafana/provisioning/datasources --overwrite
 oc set volume deployment/grafana --add --overwrite -t persistentVolumeClaim --claim-name=grafana-data --name=grafana-data --mount-path=/var/lib/grafana --overwrite
 ```
