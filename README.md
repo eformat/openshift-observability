@@ -209,7 +209,7 @@ If the `jolokia/hawt.io` console is not available for the fuse application, chec
               protocol: TCP
 ```
 
-### Grafana
+## Grafana
 
 The example template is here.
 
@@ -251,6 +251,6 @@ oc set volume deployment/grafana --add --overwrite -t secret --secret-name=grafa
 oc set volume deployment/grafana --add --overwrite -t persistentVolumeClaim --claim-name=grafana-data --name=grafana-data --mount-path=/var/lib/grafana --overwrite
 ```
 
-### Example
+## Examples
 
 ![image](images/grafana-dashboard.png)
