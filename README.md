@@ -265,6 +265,16 @@ Login to grafana and Import the `helloservice-grafana-dashboard.json` dashboard.
 
 ## Tracing Stack
 
+```
+   x--------------------x   x--------------------x
+   |  Jaeger Tracing    |---|    Applications    |
+   x--------------------X   x--------------------x
+             |
+   x--------------------x
+   | Cassandra Storage  |
+   x--------------------X
+```
+
 [Opentracing](https://opentracing.io/) contains vendor-neutral APIs and instrumentation for distributed tracing.
 
 Production deployment is documented [here](https://github.com/jaegertracing/jaeger-openshift#production-setup) where Cassandra or Elasticsearch can be used as backing storage for the Jaeger Collector and Query.
