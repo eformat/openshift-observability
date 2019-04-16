@@ -259,6 +259,6 @@ oc set volume deployment/grafana --add --overwrite -t persistentVolumeClaim --cl
 
 ## Examples
 
-Login to grafana and Import the `helloservice-grafana-dashboard.json` dashboard. Try scaling the Application pod to 2 manually, you should see metrics being collected in prometheus and grafana.
+Login to grafana and Import the `helloservice-grafana-dashboard.json` dashboard. Try scaling the Application pod to 2 manually, you should see metrics being collected in prometheus and grafana. If you browse to the root URL of the Application, you can try out the `hello` swagger API endpoints to generate metrics traffic.
 
 ![image](images/grafana-dashboard.png)
