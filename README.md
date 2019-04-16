@@ -197,7 +197,7 @@ oc set env dc/camel-springboot-rest-ose SWAGGERUI_HOST=$(oc get route camel-spri
 oc annotate svc camel-springboot-rest-ose --overwrite prometheus.io/path='/prometheus' prometheus.io/port='9779' prometheus.io/scrape='true'
 ```
 
-If the `jolokia/hawt.io` console is not available for the fuse application, check the deployment config has these ports enabled:
+If the `jolokia/hawt.io` console is not available for the fuse application, check the deployment config has these ports enabled (edit and replace them)
 
 ```
           ports:
@@ -225,6 +225,9 @@ We adjust the template to use the images available in OpenShift.
 Deploy Grafana with persistent storage for data and graphs
 
 ```
+# Switch back to monitoring project
+oc project observability
+
 # Create prometheus datasource
 oc create secret generic grafana-datasources --from-file="prometheus.yaml=./grafana-prometheus-secret.json"
 
@@ -255,5 +258,7 @@ oc set volume deployment/grafana --add --overwrite -t persistentVolumeClaim --cl
 ```
 
 ## Examples
+
+Login to grafana and Import the `helloservice-grafana-dashboard.json` dashboard. Try scaling the Application pod to 2 manually, you should see metrics being collected in prometheus and grafana.
 
 ![image](images/grafana-dashboard.png)
