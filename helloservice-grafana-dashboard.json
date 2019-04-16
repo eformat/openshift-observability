@@ -16,7 +16,7 @@
     "gnetId": null,
     "graphTooltip": 0,
     "id": 2,
-    "iteration": 1555371692772,
+    "iteration": 1555372961412,
     "links": [],
     "panels": [
       {
@@ -426,6 +426,8 @@
         {
           "allValue": null,
           "current": {
+            "text": "camel-springboot-rest-ose",
+            "value": "camel-springboot-rest-ose"
           },
           "datasource": "$datasource",
           "hide": 0,
@@ -433,10 +435,9 @@
           "label": "app",
           "multi": false,
           "name": "app",
-          "options": [
-          ],
+          "options": [],
           "query": "label_values(app)",
-          "refresh": 0,
+          "refresh": 1,
           "regex": "",
           "sort": 2,
           "tagValuesQuery": "",
@@ -448,7 +449,6 @@
         {
           "allValue": null,
           "current": {
-            "tags": [],
             "text": "10.240.14.212:9779",
             "value": "10.240.14.212:9779"
           },
@@ -503,5 +503,5 @@
     "timezone": "",
     "title": "helloservice",
     "uid": "B8ntF9qmz",
-    "version": 27
+    "version": 28
   }
