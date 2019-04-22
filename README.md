@@ -298,3 +298,230 @@ Set the Application's Jaeger endpoint in the deploymentconfig
 oc project my-app
 oc set env dc/camel-springboot-rest-ose JAEGER_ENDPOINT=http://jaeger-collector.observability.svc.cluster.local:14268/api/traces
 ```
+
+## Ceph / rook.io
+
+Ceph was not deployed as part of the PoC, but here are instructions for reference using rook.io
+
+- https://blog.openshift.com/rook-container-native-storage-openshift/
+- https://rook.io/
+- https://medium.com/@karansingh010/rook-ceph-deployment-on-openshift-4-2b34dfb6a442
+
+```
+# deploy
+git clone https://github.com/ksingh7/ocp4-rook.git
+cd ocp4-rook/ceph
+
+oc create -f scc.yaml
+oc create -f operator.yaml
+watch "oc get pods -n rook-ceph-system"
+
+oc create -f cluster.yaml
+watch "oc get pods -n rook-ceph"
+
+oc -n rook-ceph get service
+
+oc create -f toolbox.yaml
+oc get pods -n rook-ceph
+
+# login to ceph
+oc -n rook-ceph exec -it rook-ceph-tools bash ceph -s
+
+# access ceph as s3
+cd ~/git/ocp4-rook/object-access
+oc create -f object.yaml
+
+oc -n rook-ceph get pod -l app=rook-ceph-rgw
+oc -n rook-ceph get services
+
+oc create -f object-user.yaml
+oc -n rook-ceph get secrets
+
+oc -n rook-ceph describe secret rook-ceph-object-user-object
+oc -n rook-ceph get secret rook-ceph-object-user-object-object -o yaml | grep AccessKey | awk '{print $2}' | base64 --decode
+
+51M55U6YMKBX17CP9H8K
+
+oc -n rook-ceph get secret rook-ceph-object-user-object-object -o yaml | grep SecretKey | awk '{print $2}' | base64 --decode
+
+OAPi0PsqbqENnurn7EMbsSmXb9INAoXj28iFM0uD
+
+# try it out
+oc -n rook-ceph exec -it rook-ceph-tools bash
+
+# s3 cli
+export AWS_HOST=rook-ceph-rgw-object:8081
+export AWS_ENDPOINT=172.30.6.131:8081
+export AWS_ACCESS_KEY_ID=51M55U6YMKBX17CP9H8K
+export AWS_SECRET_ACCESS_KEY=OAPi0PsqbqENnurn7EMbsSmXb9INAoXj28iFM0uD
+
+# get route
+oc -n rook-ceph get svc
+oc -n rook-ceph expose svc/rook-ceph-rgw-object 
+oc -n rook-ceph get route | awk '{ print  $2 }'
+
+rook-ceph-rgw-object-rook-ceph.apps.cluster-8bb4.8bb4.openshiftworkshop.com
+
+# create s3 bucket for thanos
+s3cmd mb --access_key=51M55U6YMKBX17CP9H8K --secret_key=OAPi0PsqbqENnurn7EMbsSmXb9INAoXj28iFM0uD --no-ssl --host=rook-ceph-rgw-object-rook-ceph.apps.cluster-8bb4.8bb4.openshiftworkshop.com --host-bucket= s3://THANOS
+
+# list s3 bucket
+s3cmd --access_key=51M55U6YMKBX17CP9H8K --secret_key=OAPi0PsqbqENnurn7EMbsSmXb9INAoXj28iFM0uD --no-ssl --host=rook-ceph-rgw-object-rook-ceph.apps.cluster-8bb4.8bb4.openshiftworkshop.com --host-bucket="%(bucket)s.rook-ceph-rgw-object-rook-ceph.apps.cluster-8bb4.8bb4.openshiftworkshop.com" ls
+
+2019-04-07 07:57  s3://THANOS
+2019-04-07 07:44  s3://rookbucket
+
+# test put
+s3cmd --access_key=51M55U6YMKBX17CP9H8K --secret_key=OAPi0PsqbqENnurn7EMbsSmXb9INAoXj28iFM0uD --no-ssl --host=rook-ceph-rgw-object-rook-ceph.apps.cluster-8bb4.8bb4.openshiftworkshop.com put anaconda-ks.cfg s3://THANOS/anaconda-ks.cfg
+
+# list objects in bucket
+s3cmd --access_key=51M55U6YMKBX17CP9H8K --secret_key=OAPi0PsqbqENnurn7EMbsSmXb9INAoXj28iFM0uD --no-ssl --host=rook-ceph-rgw-object-rook-ceph.apps.cluster-8bb4.8bb4.openshiftworkshop.com ls s3://THANOS
+
+# size of bucket
+s3cmd --access_key=51M55U6YMKBX17CP9H8K --secret_key=OAPi0PsqbqENnurn7EMbsSmXb9INAoXj28iFM0uD --no-ssl --host=rook-ceph-rgw-object-rook-ceph.apps.cluster-8bb4.8bb4.openshiftworkshop.com du -H s3://THANOS
+```
+
+![rook3.png](images/rook3.png)
+
+## Thanos
+
+Thanos was not deployed as part of the PoC, but here are instructions for reference
+
+- https://github.com/improbable-eng/thanos
+- https://github.com/eformat/thanos-openshift
+
+Git clone the repo above. Deploy
+
+```
+oc new-project thanos
+oc process -f ./prometheus_thanos_full.yaml --param NAMESPACE=thanos --param THANOS_ACCESS_KEY=51M55U6YMKBX17CP9H8K --param THANOS_SECRET_KEY=OAPi0PsqbqENnurn7EMbsSmXb9INAoXj28iFM0uD | oc apply -f - 
+```
+
+Configure the configmap for s3 endpoint
+
+```
+- apiVersion: v1
+   kind: ConfigMap
+   metadata:
+     name: thanos-config-store
+     namespace: "${NAMESPACE}"
+   data:
+     ceph.yml: |-
+       type: S3
+       config:
+           endpoint: 
+rook-ceph-rgw-object-rook-ceph.apps.cluster-8bb4.8bb4.openshiftworkshop.com
+           bucket: THANOS
+           access_key: ${THANOS_ACCESS_KEY}
+           secret_key: ${THANOS_SECRET_KEY}
+           insecure: true
+           signature_version2: false
+           encrypt_sse: false
+```
+
+To get some prometheus data into storage using our thanos deployed prometheus, we can try using the `/federate` endpoint from the main openshift-monitoring prometheus
+
+- https://prometheus.io/docs/prometheus/latest/federation/
+
+```
+# expose the openshift-monitoring prometheus service inside cluster cat <<EOF | oc -n openshift-monitoring create -f -
+apiVersion: v1
+kind: Service
+metadata:
+   creationTimestamp: null
+   name: prom-fed
+spec:
+   ports:
+   - name: prom-tcp
+     port: 9090
+     protocol: TCP
+     targetPort: 9090
+   sessionAffinity: None
+   type: ClusterIP
+   selector:
+     app: prometheus
+     prometheus: k8s
+EOF
+
+# edit thanos-prometheus-configmap.yaml to scrape from main prometheus
+
+# federate
+- job_name: 'federate'
+   scrape_interval: 15s
+   honor_labels: true
+   metrics_path: '/federate'
+   params:
+     'match[]':
+       - '{__name__=~"[a-z].*"}'
+   static_configs:
+     - targets:
+       - 'prom-fed.openshift-monitoring.svc.cluster.local:9090'
+```
+
+We should now see data in thanos
+
+```
+s3cmd --access_key=51M55U6YMKBX17CP9H8K --secret_key=OAPi0PsqbqENnurn7EMbsSmXb9INAoXj28iFM0uD --no-ssl --host=rook-ceph-rgw-object-rook-ceph.apps.cluster-8bb4.8bb4.openshiftworkshop.com du -H s3://THANOS
+
+4.103711389005184G 501 objects s3://THANOS/
+```
+
+To query the thanos endpoint from grafana
+
+```
+# expose query as service
+cat <<EOF | oc -n thanos create -f -
+apiVersion: v1
+kind: Service
+metadata:
+   creationTimestamp: null
+   name: thanos-proxy-query
+spec:
+   ports:
+   - name: thanos-proxy-query
+     port: 10902
+     protocol: TCP
+     targetPort: 10902
+   sessionAffinity: None
+   type: ClusterIP
+   selector:
+     app: thanos-query
+EOF
+```
+
+Then set the prometheus datasource in grafana to use this service
+
+```
+# cat openshift-misc/grafana-wizzy/datasources/Prometheus.json
+{
+   "orgId": 1,
+   "name": "Prometheus",
+   "type": "prometheus",
+   "typeLogoUrl": 
+"public/app/plugins/datasource/prometheus/img/prometheus_logo.svg",
+   "access": "proxy",
+   "url": "http://thanos-proxy-query:10902",
+   "password": "",
+   "user": "",
+   "database": "",
+   "basicAuth": false,
+   "isDefault": true,
+   "jsonData": {
+     "httpMethod": "GET",
+     "keepCookies": [],
+     "oauthPassThru": false,
+     "tlsSkipVerify": false
+   },
+   "readOnly": false
+}
+```
+
+![thanos-grafana-query.png](images/thanos-grafana-query.png?s=200)
+
+We can see thanos querying across prometheus and s3 by looking at a weeks worth of data eventhough the prometheus statefulset is only configured to retain 6 hours of data:
+
+```
+    - '--storage.tsdb.retention=6h'
+```
+
+![thanos-week-worth-data.png](images/thanos-week-worth-data.png?s=200)
