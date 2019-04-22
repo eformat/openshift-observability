@@ -261,7 +261,7 @@ oc set volume deployment/grafana --add --overwrite -t persistentVolumeClaim --cl
 
 Login to grafana and Import the `helloservice-grafana-dashboard.json` dashboard. Try scaling the Application pod to 2 manually, you should see metrics being collected in prometheus and grafana. If you browse to the root URL of the Application, you can try out the `hello` swagger API endpoints to generate metrics traffic.
 
-<img src="images/grafana-dashboard.png" width="75%">
+<img src="images/grafana-dashboard.png" width="100%">
 
 ## Tracing Stack
 
@@ -524,4 +524,4 @@ We can see thanos querying across prometheus and s3 by looking at a weeks worth 
     - '--storage.tsdb.retention=6h'
 ```
 
-<img src="images/thanos-week-worth-data.png" width="75%">
+<img src="images/thanos-week-worth-data.png" width="100%">
