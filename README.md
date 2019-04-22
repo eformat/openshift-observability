@@ -261,7 +261,7 @@ oc set volume deployment/grafana --add --overwrite -t persistentVolumeClaim --cl
 
 Login to grafana and Import the `helloservice-grafana-dashboard.json` dashboard. Try scaling the Application pod to 2 manually, you should see metrics being collected in prometheus and grafana. If you browse to the root URL of the Application, you can try out the `hello` swagger API endpoints to generate metrics traffic.
 
-![image](images/grafana-dashboard.png)
+<img src="images/grafana-dashboard.png" width="50%">
 
 ## Tracing Stack
 
@@ -381,7 +381,7 @@ s3cmd --access_key=51M55U6YMKBX17CP9H8K --secret_key=OAPi0PsqbqENnurn7EMbsSmXb9I
 s3cmd --access_key=51M55U6YMKBX17CP9H8K --secret_key=OAPi0PsqbqENnurn7EMbsSmXb9INAoXj28iFM0uD --no-ssl --host=rook-ceph-rgw-object-rook-ceph.apps.cluster-8bb4.8bb4.openshiftworkshop.com du -H s3://THANOS
 ```
 
-![rook3.png](images/rook3.png)
+<img src="images/rook3.png" width="20%">
 
 ## Thanos
 
@@ -516,7 +516,7 @@ Then set the prometheus datasource in grafana to use this service
 }
 ```
 
-![thanos-grafana-query.png](images/thanos-grafana-query.png?s=200)
+<img src="images/thanos-grafana-query.png" width="20%">
 
 We can see thanos querying across prometheus and s3 by looking at a weeks worth of data eventhough the prometheus statefulset is only configured to retain 6 hours of data:
 
@@ -524,4 +524,5 @@ We can see thanos querying across prometheus and s3 by looking at a weeks worth 
     - '--storage.tsdb.retention=6h'
 ```
 
-![thanos-week-worth-data.png](images/thanos-week-worth-data.png?s=200)
+<img src="images/thanos-week-worth-data.png" width="50%">
+
