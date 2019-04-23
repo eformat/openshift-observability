@@ -6,7 +6,7 @@ There are 3 general areas for Observability of applications. Currently this is p
 - Log analysis
 - Tracing
 
-We will examine some opensource tools to perform these functions as part of a Proof of Concept atop OpenShift.
+We will examine some tools to perform these functions as part of a Proof of Concept atop OpenShift.
 
 ## Monitoring Stack
 
