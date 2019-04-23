@@ -525,3 +525,144 @@ We can see thanos querying across prometheus and s3 by looking at a weeks worth 
 ```
 
 <img src="images/thanos-week-worth-data.png" width="100%">
+
+## Aggregated Logging
+
+The default fluentd, EFK stack in OpenShift does not always meet all requirements (e.g. already having an enterprise wide third party logging solution such as Splunk). 
+
+There are multiple ways to forward logs to external logging systems with OpenShift including:
+
+- `secure fluentd forwarder` - OpenShift product - https://docs.openshift.com/container-platform/3.11/install_config/aggregate_logging.html (Red Hat supported)
+- `fluentbit` - a log processors and forwarders e.g. https://fluentbit.io (community)
+- `collectord` - https://www.outcoldsolutions.com/ (third party commercial)
+
+Lets evaluate the splunk and outcold solutions on OpenShift (both have trial versions available that last for 30 days).
+
+### Splunk
+
+We can run the containerised version of splunk on OpenShift in a lab environment (no enterprise storage used, all-in-one container deployment). The docker image and documentation is here
+
+- https://hub.docker.com/r/splunk/splunk/
+
+To run on OpenShift, set an admin password
+
+```
+oc new-project splunk --display-name="Splunk" --description="Splunk"
+oc new-app --name=splunk -lapp=splunk -e SPLUNK_START_ARGS=--accept-license -e SPLUNK_PASSWORD=password splunk/splunk:latest
+
+oc adm policy add-scc-to-user anyuid -z default
+
+oc set volume dc/splunk --add --overwrite -t emptyDir --name=state --mount-path=/opt/container_artifact
+oc set volume dc/splunk --add --overwrite -t emptyDir --name=ansible --mount-path=/.ansible
+
+oc expose svc splunk --port=8000
+oc patch route/splunk -p '{"spec":{"tls":{"termination":"edge"}}}'
+```
+
+Once installed, we need to enable the splunk `HTTP Event Collector`. This is used by `collectord` to forward log events:
+
+```
+http://dev.splunk.com/view/event-collector/SP-CAAAE7F
+
+Settings > Data inputs > HTTP Event Collector
+```
+
+Create a `token` that we will use for configuring `collectord`.
+
+You can test the splunk http event collector is working by remote shell and sending a test event using the token:
+
+```
+oc rsh splunk-3-lg5qf
+curl -k https://splunk:8088/services/collector/event/1.0 -H "Authorization: Splunk eba37d71-7e2b-4298-a70a-2637a5da962b" -d '{"event": "hello world"}'
+{"text":"Success","code":0}
+```
+
+### Collectord
+
+Outcold provide a log forwarder and collector called `containerd`. Full details are covered here
+
+- https://www.outcoldsolutions.com/
+- https://www.outcoldsolutions.com/docs/monitoring-openshift/v5
+
+To install, first create a project
+
+```
+oc create -f - <<EOF
+apiVersion: v1
+kind: Project
+metadata:
+  labels:
+    app: collectorforopenshift
+  name: collectorforopenshift
+  annotations:
+          # openshift.io/node-selector: ''
+          # openshift.io/description: 'Monitoring OpenShift in Splunk, built by Outcold Solutions'
+          # openshift.io/display-name: 'Collector for OpenShift'
+EOF
+```
+
+There are three tokens we need to gather before deploying.
+
+To gain access to the Outcold images, login to the Red Hat partner registry `registry.connect.redhat.com`
+
+- https://www.outcoldsolutions.com/docs/monitoring-openshift/v5/configuration/#registryconnectredhatcom-authentication
+
+And add the docker config as a pull secret to your project
+
+```
+docker login registry.connect.redhat.com
+Username: [redhat-username]
+Password: [redhat-user-password]
+Login Succeeded
+
+oc --namespace collectorforopenshift secrets new rhcc .dockerconfigjson=$HOME/.docker/config.json
+oc --namespace collectorforopenshift secrets link collectorforopenshift rhcc --for=pull
+```
+
+Edit the `collectorforopenshift.yaml` file in this repo and fill in the Splunk token created above:
+
+```
+    # Splunk HTTP Event Collector Token
+    token = REPLACEME
+```
+
+Obtain a trial license from Outcold here
+
+- https://www.outcoldsolutions.com/trial/request/
+
+And replace this in the `collectorforopenshift.yaml` file
+
+```
+    # license key
+    license = REPLACEME
+```
+
+Now deploy collectord and add `privileged` permissions for the service account
+
+```
+oc project collectorforopenshift
+oc apply -f ./collectorforopenshift.yaml
+oc adm policy add-scc-to-user privileged system:serviceaccount:collectorforopenshift:collectorforopenshift
+```
+
+Create a splunkbase free account so we can install the `"Monitoring OpenShift"` from the Apps > Browse More Apps menu
+
+- https://splunkbase.splunk.com/app/3836/
+
+
+You should now be able to search and see of the preconfigured dashboards and alerts that come with the `Monitoring OpenShift` app.
+
+Check the docmentation links above for using collectord
+
+- Annotations
+- Audit
+- Configuring Indexes
+- Field extraction
+- Multiple clusters
+- Alerts
+
+<img src="images/splunk-network-overview.png" width="100%">
+
+<img src="images/splunk-openshift-monitoring.png" width="100%">
+
+<img src="images/splunk-priv-containers.png" width="100%">
