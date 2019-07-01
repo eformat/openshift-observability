@@ -666,3 +666,14 @@ Check the docmentation links above for using collectord
 <img src="images/splunk-openshift-monitoring.png" width="100%">
 
 <img src="images/splunk-priv-containers.png" width="100%">
+
+
+## Other Future Architecture
+
+`Trickster` for proxy cache of prometheus metrics
+
+- https://github.com/Comcast/trickster
+
+`SSO` Layer, from SIX Architecture in OpenShift Commons
+
+<img src="images/six-arch.png" width="100%">
