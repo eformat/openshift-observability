@@ -677,3 +677,9 @@ Check the docmentation links above for using collectord
 `SSO` Layer, from SIX Architecture in OpenShift Commons
 
 <img src="images/six-arch.png" width="100%">
+
+## Reference - Great Blog Posts
+
+360° Observability of Camel Integrations in Red Hat OpenShift
+
+- https://brunonetid.github.io/2019/07/09/camel-observability-openshift.html
